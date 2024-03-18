@@ -4,14 +4,14 @@ import (
 	"crypto/ed25519"
 
 	"github.com/blocto/solana-go-sdk/types"
+	"github.com/edgelesssys/ego/enclave"
 	"github.com/ssd39/smart-vault-sgx-app/app/chainhelper"
 	smvCrypto "github.com/ssd39/smart-vault-sgx-app/app/crypto"
+	"github.com/ssd39/smart-vault-sgx-app/app/ipfs"
 	"github.com/ssd39/smart-vault-sgx-app/app/utils"
 )
 
-var AttestationMessage = "HelloSmartVault"
-
-func Init(keyPath string) error {
+func Init(keyPath string, ipfsUploader ipfs.IpfsUploader) error {
 	var account types.Account
 	if keyPath != "" {
 		account = chainhelper.RecoverRootAccout(keyPath)
@@ -28,17 +28,21 @@ func Init(keyPath string) error {
 
 	concesuesAcc := chainhelper.RecoverAccountFromPK(privKey)
 
-	//signedMessage := concesuesAcc.Sign([]byte(AttestationMessage))
+	signedMessage := concesuesAcc.Sign(concesuesAcc.PublicKey.Bytes())
 
-	// TODO: storing report to ipfs
-	/*report, err := enclave.GetRemoteReport(signedMessage)
+	report, err := enclave.GetRemoteReport(signedMessage)
 	if err != nil {
 		return err
-	}*/
+	}
 
-	// for test only
-	//logger.Info(report)
-	sig, err := chainhelper.Join(account, concesuesAcc, string([]byte(AttestationMessage)))
+	cid, err := ipfs.UploadBytes(ipfsUploader, report)
+	if err != nil {
+		logger.Error("Failed to upload attestation report on ipfs")
+		return err
+	}
+	logger.Infof("CID: %s", cid)
+
+	sig, err := chainhelper.Join(account, concesuesAcc, cid)
 	if err != nil {
 		return err
 	}

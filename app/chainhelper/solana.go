@@ -18,7 +18,7 @@ import (
 var logger *log.Logger
 
 var RpcEndpoint = "http://solana-rpc.oraculus.network"
-var programId = common.PublicKeyFromString("9mK3nqu3Gjgue8WbMdtKRXn6AofezpSNRkyE1QYJecah")
+var programId = common.PublicKeyFromString("8h5VHzb7RY3gkJPFpcjXHupPnDD13phDATtKqMxyBih3")
 var systemProgramm = common.PublicKeyFromString("11111111111111111111111111111111")
 
 var VAULT_METADATA = "METADATA"

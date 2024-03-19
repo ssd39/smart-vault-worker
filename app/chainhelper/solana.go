@@ -19,7 +19,7 @@ import (
 
 var RpcEndpoint = "http://solana-rpc.oraculus.network"
 var WsRpcEndpoint = "ws://127.0.0.1:8900"
-var programId = common.PublicKeyFromString("68tzyMr7rECzv79s1C2AbzMLcfw1gjvkdcRXtmyTpLYb")
+var programId = common.PublicKeyFromString("DmrxZbSZF84Pa9dnrg23FsvZffZpovfgi5pjqDKoDxom")
 var systemProgramm = common.PublicKeyFromString("11111111111111111111111111111111")
 
 var VAULT_METADATA = "METADATA"
@@ -170,9 +170,14 @@ func ListenEvents() error {
 	subscribeMessage := map[string]interface{}{
 		"jsonrpc": "2.0",
 		"id":      1,
-		"method":  "accountSubscribe",
+		"method":  "logsSubscribe",
 		"params": []interface{}{
-			programId.ToBase58(),
+			map[string]interface{}{
+				"mentions": []string{programId.ToBase58()},
+			},
+			map[string]interface{}{
+				"commitment": "finalized",
+			},
 		},
 	}
 	err = conn.WriteJSON(subscribeMessage)
@@ -196,11 +201,10 @@ func ListenEvents() error {
 
 		// Handle message
 		switch message.Method {
-		case "accountNotification":
+		case "logsNotification":
 			logger.Info("Received account notification", "msg", string(message.Params))
 		default:
 			logger.Info("Unhandled message", "msg", string(msg))
 		}
 	}
-	return nil
 }

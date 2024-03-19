@@ -2,3 +2,6 @@
 .walletKey
 sync.sh
 vault/
+private.pem
+init.sh
+.git

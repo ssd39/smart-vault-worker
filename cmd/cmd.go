@@ -42,7 +42,7 @@ func Start() {
 
 					if ipfsServiceDetails[0] == "filebase" {
 						// Example: "filebase:{AccesKey}:{SecretKey}:{BucketName}"
-						if len(ipfsServiceDetails) < 3 {
+						if len(ipfsServiceDetails) < 4 {
 							return errors.New("Un-sufficient arguments for filebase ipfs uploader")
 						}
 						ipfsUploader = &ipfs.FilebaseUploader{
@@ -69,6 +69,22 @@ func Start() {
 				},
 				Action: func(cCtx *cli.Context) error {
 					return nil
+				},
+			},
+			{
+
+				Name:  "start",
+				Usage: "start the worker",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "key",
+						Usage:    "json file path of private key",
+						Required: true,
+					},
+				},
+				Action: func(cCtx *cli.Context) error {
+					keyPath := cCtx.String("key")
+					return entrypoint.Start(keyPath)
 				},
 			},
 		},

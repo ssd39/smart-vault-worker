@@ -3,25 +3,27 @@ package chainhelper
 import (
 	"context"
 	"crypto/ed25519"
+	"encoding/json"
+	"log"
 	"os"
 
 	"github.com/blocto/solana-go-sdk/client"
 	"github.com/blocto/solana-go-sdk/common"
 	"github.com/blocto/solana-go-sdk/types"
-	"github.com/charmbracelet/log"
+	"github.com/gorilla/websocket"
 	"github.com/mr-tron/base58"
 	"github.com/near/borsh-go"
 
 	"github.com/ssd39/smart-vault-sgx-app/app/utils"
 )
 
-var logger *log.Logger
-
 var RpcEndpoint = "http://solana-rpc.oraculus.network"
-var programId = common.PublicKeyFromString("8h5VHzb7RY3gkJPFpcjXHupPnDD13phDATtKqMxyBih3")
+var WsRpcEndpoint = "ws://127.0.0.1:8900"
+var programId = common.PublicKeyFromString("68tzyMr7rECzv79s1C2AbzMLcfw1gjvkdcRXtmyTpLYb")
 var systemProgramm = common.PublicKeyFromString("11111111111111111111111111111111")
 
 var VAULT_METADATA = "METADATA"
+var APP_COUNTER = "APP_COUNTER"
 
 func init() {
 	logger = utils.Logger
@@ -99,6 +101,15 @@ func Join(account types.Account, consesues types.Account, attestation string) (s
 		return "", err
 	}
 
+	counterStrBytes := []byte(APP_COUNTER)
+	var counterSeeds [][]byte
+	counterSeeds = append(counterSeeds, counterStrBytes)
+	counterPda, _, err := common.FindProgramAddress(counterSeeds, programId)
+	if err != nil {
+		logger.Error("Failed to derive pda account for counter")
+		return "", err
+	}
+
 	tx, err := types.NewTransaction(types.NewTransactionParam{
 		Signers: []types.Account{account},
 		Message: types.NewMessage(types.NewMessageParam{
@@ -113,6 +124,10 @@ func Join(account types.Account, consesues types.Account, attestation string) (s
 							IsSigner: true,
 						}, {
 							PubKey:     vaultMetaDataPda,
+							IsWritable: true,
+						},
+						{
+							PubKey:     counterPda,
 							IsWritable: true,
 						},
 						{
@@ -137,4 +152,55 @@ func Join(account types.Account, consesues types.Account, attestation string) (s
 	}
 
 	return sig, nil
+}
+
+type Message struct {
+	Method string          `json:"method"`
+	Params json.RawMessage `json:"params"`
+}
+
+func ListenEvents() error {
+	conn, _, err := websocket.DefaultDialer.Dial(WsRpcEndpoint, nil)
+	if err != nil {
+		logger.Error("Error connecting web-socket")
+		return err
+	}
+	defer conn.Close()
+
+	subscribeMessage := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "accountSubscribe",
+		"params": []interface{}{
+			programId.ToBase58(),
+		},
+	}
+	err = conn.WriteJSON(subscribeMessage)
+	if err != nil {
+		logger.Error("Error subscribing to account")
+		return err
+	}
+	for {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			log.Fatal("Error reading message from Solana RPC:", err)
+		}
+
+		// Unmarshal message
+		var message Message
+		err = json.Unmarshal(msg, &message)
+		if err != nil {
+			logger.Error("Error unmarshalling message", "error", err)
+			continue
+		}
+
+		// Handle message
+		switch message.Method {
+		case "accountNotification":
+			logger.Info("Received account notification", "msg", string(message.Params))
+		default:
+			logger.Info("Unhandled message", "msg", string(msg))
+		}
+	}
+	return nil
 }

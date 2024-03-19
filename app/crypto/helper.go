@@ -17,3 +17,16 @@ func SealKeyToFile(seed []byte, filePath string) error {
 	}
 	return nil
 }
+
+func UnSealKey(filePath string) ([]byte, error) {
+	encSeed, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	seed, err := ecrypto.Unseal(encSeed, nil)
+	if err != nil {
+		return nil, err
+	}
+	return seed, nil
+}

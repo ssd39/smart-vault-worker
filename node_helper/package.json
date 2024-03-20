@@ -1,0 +1,17 @@
+{
+  "name": "node_helper",
+  "version": "1.0.0",
+  "description": "Helper toolkit used for testing user part instructions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "dwij patel",
+  "license": "ISC",
+  "dependencies": {
+    "@solana/spl-token": "^0.4.1",
+    "@solana/web3.js": "^1.91.1",
+    "borsh": "^2.0.0"
+  }
+}

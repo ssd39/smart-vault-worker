@@ -5,3 +5,5 @@ vault/
 private.pem
 init.sh
 .git
+node_helper/node_modules
+keypair.json

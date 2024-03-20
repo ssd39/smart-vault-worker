@@ -159,7 +159,7 @@ type Message struct {
 	Params json.RawMessage `json:"params"`
 }
 
-func ListenEvents() error {
+func ListenEvents(eventChan chan Instruction) error {
 	conn, _, err := websocket.DefaultDialer.Dial(WsRpcEndpoint, nil)
 	if err != nil {
 		logger.Error("Error connecting web-socket")
@@ -203,6 +203,24 @@ func ListenEvents() error {
 		switch message.Method {
 		case "logsNotification":
 			logger.Info("Received account notification", "msg", string(message.Params))
+			var data map[string]interface{}
+			if err := json.Unmarshal([]byte(string(message.Params)), &data); err != nil {
+				logger.Error("Error decoding JSON", "error", err)
+				continue
+			}
+
+			logs, ok := data["result"].(map[string]interface{})["value"].(map[string]interface{})["logs"].([]interface{})
+			if !ok {
+				logger.Error("Error: Logs not found in JSON")
+				continue
+			}
+
+			for _, log := range logs {
+				intrustion, err := ParseProgramLog(log.(string))
+				if err == nil {
+					eventChan <- intrustion
+				}
+			}
 		default:
 			logger.Info("Unhandled message", "msg", string(msg))
 		}

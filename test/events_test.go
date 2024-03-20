@@ -7,8 +7,12 @@ import (
 )
 
 func TestEvents(t *testing.T) {
-	err := chainhelper.ListenEvents()
+	eventChan := make(chan chainhelper.Instruction)
+	err := chainhelper.ListenEvents(eventChan)
 	if err != nil {
 		t.Error(err)
+	}
+	for event := range eventChan {
+		t.Log(event)
 	}
 }

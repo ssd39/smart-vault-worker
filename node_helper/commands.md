@@ -4,4 +4,4 @@ solana-keygen new -o keypair.json
 
 spl-token create-token
 
-spl-token create-account G5KD3cp7YWQoRrCaWRJ7WyjuyWj1VDLhnorX4i3BuYTD --owner 7j7qc7dtHomyQwcVTipUa1vCJxgFDjcBCKbFzdMY4j1U --fee-payer ./keypair.json
+spl-token create-account 5DYw4t2nJoSyhD9NDnPTveN7ZY4DwZyDXHTMJPdnqeZG --owner DDWnhLpBMVAXGrYNPZKu8wbQdt7iUXfc1fJVWmxTkCc --fee-payer ./keypair.json

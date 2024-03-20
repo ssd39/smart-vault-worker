@@ -18,12 +18,13 @@ import (
 )
 
 var RpcEndpoint = "http://solana-rpc.oraculus.network"
-var WsRpcEndpoint = "ws://127.0.0.1:8900"
-var programId = common.PublicKeyFromString("DmrxZbSZF84Pa9dnrg23FsvZffZpovfgi5pjqDKoDxom")
+var WsRpcEndpoint = "ws://solana-rpc-ws.oraculus.network"
+var programId = common.PublicKeyFromString("BJzXMqLoic3YKFJVkFr3PTfL8Myopdo6rUHHKoVirYga")
 var systemProgramm = common.PublicKeyFromString("11111111111111111111111111111111")
 
 var VAULT_METADATA = "METADATA"
 var APP_COUNTER = "APP_COUNTER"
+var TREASURY_STATE = "TREASURY_STATE"
 
 func init() {
 	logger = utils.Logger
@@ -110,6 +111,15 @@ func Join(account types.Account, consesues types.Account, attestation string) (s
 		return "", err
 	}
 
+	tresuaryStrBytes := []byte(TREASURY_STATE)
+	var tresuarySeeds [][]byte
+	tresuarySeeds = append(tresuarySeeds, tresuaryStrBytes)
+	tresuaryPda, _, err := common.FindProgramAddress(tresuarySeeds, programId)
+	if err != nil {
+		logger.Error("Failed to derive pda account for counter")
+		return "", err
+	}
+
 	tx, err := types.NewTransaction(types.NewTransactionParam{
 		Signers: []types.Account{account},
 		Message: types.NewMessage(types.NewMessageParam{
@@ -122,12 +132,17 @@ func Join(account types.Account, consesues types.Account, attestation string) (s
 						{
 							PubKey:   account.PublicKey,
 							IsSigner: true,
-						}, {
+						},
+						{
 							PubKey:     vaultMetaDataPda,
 							IsWritable: true,
 						},
 						{
 							PubKey:     counterPda,
+							IsWritable: true,
+						},
+						{
+							PubKey:     tresuaryPda,
 							IsWritable: true,
 						},
 						{

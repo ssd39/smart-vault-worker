@@ -10,15 +10,18 @@ import {
 } from "@solana/web3.js";
 import * as borsh from "borsh";
 import Instructions from "./instructions.js";
+import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import State from "./state.js";
 
 const APP_COUNTER = "APP_COUNTER";
 const APP_STATE = "APP_STATE";
+const USER_STATE = "USER_STATE";
+const TREASURY_STATE = "TREASURY_STATE";
 
 const mySplToken = new PublicKey(
   "5DYw4t2nJoSyhD9NDnPTveN7ZY4DwZyDXHTMJPdnqeZG"
 );
-const programId = new PublicKey("3TipRRUwFPzPEce14idYyjtYbDfukev4ddY24HA7W9x5");
+const programId = new PublicKey("BJzXMqLoic3YKFJVkFr3PTfL8Myopdo6rUHHKoVirYga");
 
 const keyPairBytes = JSON.parse(fs.readFileSync("keypair.json"));
 
@@ -39,35 +42,32 @@ function bigIntToBuffer(bigInt) {
 async function publish_app() {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
 
-  const addAppPayload = { rent_amount: BigInt(2), ipfs_hash: "test" };
-  const encoded = borsh.serialize(Instructions.AddAppPayload, addAppPayload);
-  const instructionData = [2, ...encoded];
+  const topupPayload = { amount: BigInt(10) };
+  const encoded = borsh.serialize(Instructions.TopUpPayload, topupPayload);
+  const instructionData = [3, ...encoded];
 
-  const [app_counter, _] = PublicKey.findProgramAddressSync(
-    [Buffer.from(APP_COUNTER, "utf8")],
+  const [user_state, _] = PublicKey.findProgramAddressSync(
+    [Buffer.from(USER_STATE, "utf8"), myAccount.toBuffer()],
     programId
   );
 
-  //const ata_account_info = await connection.getAccountInfo(myAta);
-
-  const app_counter_info = await connection.getAccountInfo(app_counter);
-
-  const app_counter_data = borsh.deserialize(
-    State.VaultAppCounterState,
-    app_counter_info.data
-  );
-  console.log(app_counter_data)
-  console.log(bigIntToBuffer(app_counter_data.counter));
-  const [app_state, __] = PublicKey.findProgramAddressSync(
-    [Buffer.from(APP_STATE, "utf8"), bigIntToBuffer(app_counter_data.counter)],
+  const [programm_treasury, __] = PublicKey.findProgramAddressSync(
+    [Buffer.from(TREASURY_STATE, "utf8")],
     programId
+  );
+  const program_ata = getAssociatedTokenAddressSync(
+    mySplToken,
+    programm_treasury,
+    true
   );
 
   const instructionKeys = [
     { pubkey: myAccount, isSigner: true },
     { pubkey: myAta },
-    { pubkey: app_counter, isWritable: true },
-    { pubkey: app_state, isWritable: true },
+    { pubkey: user_state, isWritable: true },
+    { pubkey: programm_treasury },
+    { pubkey: program_ata},
+    { pubkey: mySplToken},
     { pubkey: SystemProgram.programId },
   ];
 
@@ -77,6 +77,7 @@ async function publish_app() {
     programId: programId,
     data: Buffer.from(instructionData),
   });
+
   const blockhash = (await connection.getLatestBlockhash("finalized"))
     .blockhash;
   const messageV0 = new TransactionMessage({

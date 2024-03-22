@@ -99,7 +99,7 @@ func SendBidReq(subReqPayload chainhelper.SubRequest) error {
 	if !isSideCardConnected {
 		return errors.New("Sidecar not connected!")
 	}
-	bidReqPayload := BidReq{Id: subReqPayload.Id, MaxRent: subReqPayload.MaxRent}
+	bidReqPayload := BidReq{Type: "BidReq", Id: subReqPayload.Id, MaxRent: subReqPayload.MaxRent}
 	jsonData, err := json.Marshal(bidReqPayload)
 	if err != nil {
 		logger.Error("Error marshaling JSON:", "err", err)

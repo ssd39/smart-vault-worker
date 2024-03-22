@@ -2,8 +2,8 @@
 
 package main
 
-import "fmt"
+import "github.com/ssd39/smart-vault-sgx-app/cmd"
 
 func main() {
-	fmt.Println("LOL!")
+	cmd.StartSidecar()
 }

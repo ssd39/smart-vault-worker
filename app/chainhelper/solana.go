@@ -1,8 +1,10 @@
 package chainhelper
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
+	"encoding/binary"
 	"encoding/json"
 	"log"
 	"os"
@@ -77,6 +79,22 @@ func RecoverRootAccout(keyPath string) types.Account {
 		os.Exit(1)
 	}
 	return acc
+}
+
+func GetCurTime() (int64, error) {
+	c := client.NewClient(RpcEndpoint)
+	clock, err := c.GetAccountInfo(context.Background(), common.SysVarClockPubkey.ToBase58())
+	if err != nil {
+		logger.Error(err)
+		return 0, err
+	}
+	var clockData ClockData
+	reader := bytes.NewReader(clock.Data)
+	err = binary.Read(reader, binary.LittleEndian, &clockData)
+	if err != nil {
+		return 0, err
+	}
+	return clockData.UnixTimestamp, nil
 }
 
 func Join(account types.Account, consesues types.Account, attestation string) (string, error) {
@@ -194,7 +212,6 @@ func ListenEvents(eventChan chan Instruction) error {
 		logger.Error("Error connecting web-socket")
 		return err
 	}
-	defer conn.Close()
 
 	subscribeMessage := map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -214,47 +231,47 @@ func ListenEvents(eventChan chan Instruction) error {
 		logger.Error("Error subscribing to account")
 		return err
 	}
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			log.Fatal("Error reading message from Solana RPC:", err)
-		}
+	go func() {
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				log.Fatal("Error reading message from Solana RPC:", err)
+			}
 
-		// Unmarshal message
-		var message Message
-		err = json.Unmarshal(msg, &message)
-		if err != nil {
-			logger.Error("Error unmarshalling message", "error", err)
-			continue
-		}
-
-		// Handle message
-		switch message.Method {
-		case "logsNotification":
-			logger.Info("Received logs notification", "msg", string(message.Params))
-			var data map[string]interface{}
-			if err := json.Unmarshal([]byte(string(message.Params)), &data); err != nil {
-				logger.Error("Error decoding JSON", "error", err)
+			// Unmarshal message
+			var message Message
+			err = json.Unmarshal(msg, &message)
+			if err != nil {
+				logger.Error("Error unmarshalling message", "error", err)
 				continue
 			}
 
-			logs, ok := data["result"].(map[string]interface{})["value"].(map[string]interface{})["logs"].([]interface{})
-			if !ok {
-				logger.Error("Error: Logs not found in JSON")
-				continue
-			}
-
-			for _, log := range logs {
-				intrustion, err := ParseProgramLog(log.(string))
-				if err == nil {
-					eventChan <- intrustion
-				} else {
-					logger.Info("TxLog:", "=>", log)
-					logger.Error("TxLogsParseError:", "err", err)
+			// Handle message
+			switch message.Method {
+			case "logsNotification":
+				logger.Info("Received logs notification", "msg", string(message.Params))
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(string(message.Params)), &data); err != nil {
+					logger.Error("Error decoding JSON", "error", err)
+					continue
 				}
+
+				logs, ok := data["result"].(map[string]interface{})["value"].(map[string]interface{})["logs"].([]interface{})
+				if !ok {
+					logger.Error("Error: Logs not found in JSON")
+					continue
+				}
+
+				for _, log := range logs {
+					instruction, err := ParseProgramLog(log.(string))
+					if err == nil {
+						eventChan <- instruction
+					}
+				}
+			default:
+				logger.Info("Unhandled message", "msg", string(msg))
 			}
-		default:
-			logger.Info("Unhandled message", "msg", string(msg))
 		}
-	}
+	}()
+	return nil
 }

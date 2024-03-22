@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/ssd39/smart-vault-sgx-app/app/sidecar"
 	"github.com/urfave/cli/v2"
 )
 
@@ -16,7 +17,7 @@ func StartSidecar() {
 				Usage: "run the sidecar",
 				Flags: []cli.Flag{},
 				Action: func(cCtx *cli.Context) error {
-
+					sidecar.StartListner()
 					return nil
 				},
 			},

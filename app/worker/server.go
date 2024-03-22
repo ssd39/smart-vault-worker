@@ -2,9 +2,11 @@ package worker
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/ssd39/smart-vault-sgx-app/app/chainhelper"
@@ -19,7 +21,7 @@ var subReqList = []chainhelper.SubRequest{}
 
 func SidecarChannel(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
-	if !isSideCardConnected {
+	if isSideCardConnected {
 		defer mu.Unlock()
 		jsonData, err := json.Marshal(FailedConnectRes{
 			Sucess:  false,
@@ -45,7 +47,8 @@ func SidecarChannel(w http.ResponseWriter, r *http.Request) {
 	mu.Unlock()
 	defer c.Close()
 	for {
-		_, message, err := c.ReadMessage()
+		mt, message, err := c.ReadMessage()
+		logger.Info("ws:message-type", mt)
 		if err != nil {
 			logger.Info("error while reading ws message:", err)
 			mu.Lock()
@@ -66,17 +69,36 @@ func SidecarChannel(w http.ResponseWriter, r *http.Request) {
 				var bidRes BidRes
 				err = json.Unmarshal(message, &bidRes)
 				if err == nil && bidRes.IsApproved {
-					// call contract to bid
-
+					ConfirmBid(&bidRes)
 				}
 			}
 		}
 	}
 }
 
+func ConfirmBid(bidRes *BidRes) {
+	mu.Lock()
+	defer mu.Unlock()
+	var tempList []chainhelper.SubRequest
+	now := time.Now()
+	for _, item := range subReqList {
+		if item.BidEndTime > now.Unix() {
+			if bidRes.Id == item.Id {
+				// call smart contrct to bid
+			} else {
+				tempList = append(tempList, item)
+			}
+		}
+	}
+	subReqList = tempList
+}
+
 func SendBidReq(subReqPayload chainhelper.SubRequest) error {
 	mu.Lock()
 	defer mu.Unlock()
+	if !isSideCardConnected {
+		return errors.New("Sidecar not connected!")
+	}
 	bidReqPayload := BidReq{Id: subReqPayload.Id, MaxRent: subReqPayload.MaxRent}
 	jsonData, err := json.Marshal(bidReqPayload)
 	if err != nil {

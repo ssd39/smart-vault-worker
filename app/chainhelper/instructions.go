@@ -33,7 +33,7 @@ type SubRequest struct {
 	SubScriberKey common.PublicKey
 	Id            uint64
 	MaxRent       uint64
-	BidEndTime    uint64
+	BidEndTime    int64
 }
 
 type BidAdded struct {
@@ -100,7 +100,7 @@ func ParseProgramLog(log string) (Instruction, error) {
 				if err != nil {
 					return nil, err
 				}
-				bidEndTime, err := strconv.ParseUint(logParts[5], 10, 64)
+				bidEndTime, err := strconv.ParseInt(logParts[5], 10, 64)
 				if err != nil {
 					return nil, err
 				}

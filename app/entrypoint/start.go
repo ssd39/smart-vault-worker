@@ -1,6 +1,12 @@
 package entrypoint
 
-import "github.com/ssd39/smart-vault-sgx-app/app/chainhelper"
+import (
+	"net/http"
+	"time"
+
+	"github.com/ssd39/smart-vault-sgx-app/app/chainhelper"
+	"github.com/ssd39/smart-vault-sgx-app/app/worker"
+)
 
 func Start(keyPath string) error {
 	/*var account types.Account
@@ -15,6 +21,9 @@ func Start(keyPath string) error {
 		logger.Error("Error while unselaing the seed key")
 		return err
 	}*/
+	http.HandleFunc("/", worker.SidecarChannel)
+	go http.ListenAndServe("localhost:8888", nil)
+
 	eventChan := make(chan chainhelper.Instruction)
 	err := chainhelper.ListenEvents(eventChan)
 	if err != nil {
@@ -29,6 +38,18 @@ func Start(keyPath string) error {
 		case chainhelper.ProtocolInitType:
 		case chainhelper.SubClosedType:
 		case chainhelper.SubRequestType:
+			if subReqPayload, ok := event.(chainhelper.SubRequest); ok {
+				now := time.Now()
+				if subReqPayload.BidEndTime < uint64(now.Unix()) {
+					logger.Error("Got expired subreq", "payload", subReqPayload)
+					continue
+				}
+				err = worker.SendBidReq(subReqPayload)
+				if err != nil {
+					eventChan <- event
+					logger.Error("Error while sending subreq to sidecar", "action", "retrying")
+				}
+			}
 		}
 	}
 	return nil

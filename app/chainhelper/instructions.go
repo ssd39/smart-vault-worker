@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blocto/solana-go-sdk/common"
 	"github.com/blocto/solana-go-sdk/types"
 )
 
@@ -24,24 +25,24 @@ type ProtocolInit struct {
 }
 
 type JoinReq struct {
-	TransitKey  types.Account
+	TransitKey  common.PublicKey
 	Attestation string
 }
 
 type SubRequest struct {
-	SubScriberKey types.Account
+	SubScriberKey common.PublicKey
 	Id            uint64
 	MaxRent       uint64
 	BidEndTime    uint64
 }
 
 type BidAdded struct {
-	Bidder types.Account
+	Bidder common.PublicKey
 	Rent   uint64
 }
 
 type SubClosed struct {
-	SubKey types.Account
+	SubKey common.PublicKey
 }
 
 func (i ProtocolInit) GetType() uint8 {
@@ -67,6 +68,7 @@ func (i SubClosed) GetType() uint8 {
 func ParseProgramLog(log string) (Instruction, error) {
 	logParts := strings.Split(log, ":")
 	if len(logParts) >= 2 {
+		logParts[1] = strings.Trim(logParts[1], " ")
 		if logParts[1] == "ProtocolInit" {
 			if len(logParts[1:]) == 3 {
 				acc, err := types.AccountFromBase58(logParts[2])
@@ -80,10 +82,7 @@ func ParseProgramLog(log string) (Instruction, error) {
 			}
 		} else if logParts[1] == "JoinReq" {
 			if len(logParts[1:]) == 3 {
-				acc, err := types.AccountFromBase58(logParts[2])
-				if err != nil {
-					return nil, err
-				}
+				acc := common.PublicKeyFromString(logParts[2])
 				return JoinReq{
 					TransitKey:  acc,
 					Attestation: logParts[3],
@@ -91,10 +90,8 @@ func ParseProgramLog(log string) (Instruction, error) {
 			}
 		} else if logParts[1] == "SubRequest" {
 			if len(logParts[1:]) == 5 {
-				acc, err := types.AccountFromBase58(logParts[2])
-				if err != nil {
-					return nil, err
-				}
+				acc := common.PublicKeyFromString(logParts[2])
+
 				id, err := strconv.ParseUint(logParts[3], 10, 64)
 				if err != nil {
 					return nil, err
@@ -116,10 +113,8 @@ func ParseProgramLog(log string) (Instruction, error) {
 			}
 		} else if logParts[1] == "BidAdded" {
 			if len(logParts[1:]) == 3 {
-				acc, err := types.AccountFromBase58(logParts[2])
-				if err != nil {
-					return nil, err
-				}
+				acc := common.PublicKeyFromString(logParts[2])
+
 				rent, err := strconv.ParseUint(logParts[3], 10, 64)
 				if err != nil {
 					return nil, err
@@ -131,10 +126,7 @@ func ParseProgramLog(log string) (Instruction, error) {
 			}
 		} else if logParts[1] == "SubClosed" {
 			if len(logParts[1:]) == 2 {
-				subKey, err := types.AccountFromBase58(logParts[2])
-				if err != nil {
-					return nil, err
-				}
+				subKey := common.PublicKeyFromString(logParts[2])
 				return SubClosed{
 					SubKey: subKey,
 				}, nil

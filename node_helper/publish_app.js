@@ -18,7 +18,7 @@ const APP_STATE = "APP_STATE";
 const mySplToken = new PublicKey(
   "5DYw4t2nJoSyhD9NDnPTveN7ZY4DwZyDXHTMJPdnqeZG"
 );
-const programId = new PublicKey("3TipRRUwFPzPEce14idYyjtYbDfukev4ddY24HA7W9x5");
+const programId = new PublicKey("6bcSZLTvfu2ZaC7yhXfkaupFG315r4qWK8wqSQN5LRFT");
 
 const keyPairBytes = JSON.parse(fs.readFileSync("keypair.json"));
 

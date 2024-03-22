@@ -10,7 +10,7 @@ import {
 } from "@solana/web3.js";
 import * as borsh from "borsh";
 import Instructions from "./instructions.js";
-import { getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import State from "./state.js";
 
 const APP_COUNTER = "APP_COUNTER";
@@ -21,7 +21,7 @@ const TREASURY_STATE = "TREASURY_STATE";
 const mySplToken = new PublicKey(
   "5DYw4t2nJoSyhD9NDnPTveN7ZY4DwZyDXHTMJPdnqeZG"
 );
-const programId = new PublicKey("BJzXMqLoic3YKFJVkFr3PTfL8Myopdo6rUHHKoVirYga");
+const programId = new PublicKey("6bcSZLTvfu2ZaC7yhXfkaupFG315r4qWK8wqSQN5LRFT");
 
 const keyPairBytes = JSON.parse(fs.readFileSync("keypair.json"));
 
@@ -39,10 +39,10 @@ function bigIntToBuffer(bigInt) {
   return buffer;
 }
 
-async function publish_app() {
+async function topup() {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
 
-  const topupPayload = { amount: BigInt(10) };
+  const topupPayload = { amount: BigInt(1000000) };
   const encoded = borsh.serialize(Instructions.TopUpPayload, topupPayload);
   const instructionData = [3, ...encoded];
 
@@ -62,12 +62,13 @@ async function publish_app() {
   );
 
   const instructionKeys = [
-    { pubkey: myAccount, isSigner: true },
-    { pubkey: myAta },
+    { pubkey: myAccount, isSigner: true  },
+    { pubkey: myAta, isWritable: true },
     { pubkey: user_state, isWritable: true },
     { pubkey: programm_treasury },
-    { pubkey: program_ata},
-    { pubkey: mySplToken},
+    { pubkey: program_ata, isWritable: true},
+    { pubkey: mySplToken },
+    { pubkey: TOKEN_PROGRAM_ID },
     { pubkey: SystemProgram.programId },
   ];
 
@@ -91,4 +92,4 @@ async function publish_app() {
   console.log(signature);
 }
 
-publish_app();
+topup();

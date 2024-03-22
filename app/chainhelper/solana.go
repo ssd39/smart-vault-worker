@@ -9,6 +9,7 @@ import (
 
 	"github.com/blocto/solana-go-sdk/client"
 	"github.com/blocto/solana-go-sdk/common"
+	"github.com/blocto/solana-go-sdk/program/associated_token_account"
 	"github.com/blocto/solana-go-sdk/types"
 	"github.com/gorilla/websocket"
 	"github.com/mr-tron/base58"
@@ -18,9 +19,10 @@ import (
 )
 
 var RpcEndpoint = "http://solana-rpc.oraculus.network"
-var WsRpcEndpoint = "ws://solana-rpc-ws.oraculus.network"
-var programId = common.PublicKeyFromString("BJzXMqLoic3YKFJVkFr3PTfL8Myopdo6rUHHKoVirYga")
-var systemProgramm = common.PublicKeyFromString("11111111111111111111111111111111")
+var WsRpcEndpoint = "ws://127.0.0.1:8900"
+var programId = common.PublicKeyFromString("6bcSZLTvfu2ZaC7yhXfkaupFG315r4qWK8wqSQN5LRFT")
+var systemProgram = common.PublicKeyFromString("11111111111111111111111111111111")
+var smvSplToken = common.PublicKeyFromString("5DYw4t2nJoSyhD9NDnPTveN7ZY4DwZyDXHTMJPdnqeZG")
 
 var VAULT_METADATA = "METADATA"
 var APP_COUNTER = "APP_COUNTER"
@@ -120,12 +122,24 @@ func Join(account types.Account, consesues types.Account, attestation string) (s
 		return "", err
 	}
 
+	programAta, _, err := common.FindAssociatedTokenAddress(tresuaryPda, smvSplToken)
+	if err != nil {
+		logger.Error("Failed to derive pda account for program ata")
+		return "", err
+	}
+
 	tx, err := types.NewTransaction(types.NewTransactionParam{
 		Signers: []types.Account{account},
 		Message: types.NewMessage(types.NewMessageParam{
 			FeePayer:        account.PublicKey,
 			RecentBlockhash: res.Blockhash,
 			Instructions: []types.Instruction{
+				associated_token_account.Create(associated_token_account.CreateParam{
+					Funder:                 account.PublicKey,
+					Owner:                  tresuaryPda,
+					Mint:                   smvSplToken,
+					AssociatedTokenAccount: programAta,
+				}),
 				{
 					ProgramID: programId,
 					Accounts: []types.AccountMeta{
@@ -146,7 +160,7 @@ func Join(account types.Account, consesues types.Account, attestation string) (s
 							IsWritable: true,
 						},
 						{
-							PubKey: systemProgramm,
+							PubKey: systemProgram,
 						},
 					},
 					Data: utils.Prepend([]byte{0}, data),
@@ -217,7 +231,7 @@ func ListenEvents(eventChan chan Instruction) error {
 		// Handle message
 		switch message.Method {
 		case "logsNotification":
-			logger.Info("Received account notification", "msg", string(message.Params))
+			logger.Info("Received logs notification", "msg", string(message.Params))
 			var data map[string]interface{}
 			if err := json.Unmarshal([]byte(string(message.Params)), &data); err != nil {
 				logger.Error("Error decoding JSON", "error", err)
@@ -234,6 +248,9 @@ func ListenEvents(eventChan chan Instruction) error {
 				intrustion, err := ParseProgramLog(log.(string))
 				if err == nil {
 					eventChan <- intrustion
+				} else {
+					logger.Info("TxLog:", "=>", log)
+					logger.Error("TxLogsParseError:", "err", err)
 				}
 			}
 		default:

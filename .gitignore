@@ -7,3 +7,5 @@ init.sh
 .git
 node_helper/node_modules
 keypair.json
+smart-vault-sgx-app
+smart-vault-sidecar

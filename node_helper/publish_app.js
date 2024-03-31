@@ -15,16 +15,13 @@ import State from "./state.js";
 const APP_COUNTER = "APP_COUNTER";
 const APP_STATE = "APP_STATE";
 
-const mySplToken = new PublicKey(
-  "5DYw4t2nJoSyhD9NDnPTveN7ZY4DwZyDXHTMJPdnqeZG"
-);
-const programId = new PublicKey("6bcSZLTvfu2ZaC7yhXfkaupFG315r4qWK8wqSQN5LRFT");
+const programId = new PublicKey("J82e6dQCfCgNdfQmyAdAX9jFeE7cREE84gfT3ViNauDN");
 
 const keyPairBytes = JSON.parse(fs.readFileSync("keypair.json"));
 
 const keyPair = Keypair.fromSecretKey(new Uint8Array(keyPairBytes));
 const myAccount = new PublicKey("DDWnhLpBMVAXGrYNPZKu8wbQdt7iUXfc1fJVWmxTkCc");
-const myAta = new PublicKey("45U4tSGsMgNASYn5NFX3remd5iRpXBLXLKfEWDwepyYN");
+const myAta = new PublicKey("8LGu9UQs79agXnMaa1fec7ysotLSqKvaueY5pvHt9V2o");
 
 function bigIntToBuffer(bigInt) {
   const buffer = new ArrayBuffer(8); // Assuming maximum 8 bytes required
@@ -39,7 +36,7 @@ function bigIntToBuffer(bigInt) {
 async function publish_app() {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
 
-  const addAppPayload = { rent_amount: BigInt(2), ipfs_hash: "test" };
+  const addAppPayload = { rent_amount: BigInt(2), ipfs_hash: "QmUqddMMf2DgqTDqvVVsN7m1yAQSdLHWAqti8r49D8stGJ" };
   const encoded = borsh.serialize(Instructions.AddAppPayload, addAppPayload);
   const instructionData = [2, ...encoded];
 

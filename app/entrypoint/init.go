@@ -21,6 +21,8 @@ func Init(keyPath string, ipfsUploader ipfs.IpfsUploader) error {
 	logger.Info(account.PublicKey.ToBase58())
 	seed := utils.GenerateRandom64Bytes()[:32]
 	privKey := ed25519.NewKeyFromSeed(seed)
+	// temp logic to test things on non-sgx env
+	logger.Info("Seed:", "=>", privKey.Seed())
 	err := smvCrypto.SealKeyToFile(privKey.Seed(), ".seedKey")
 	if err != nil {
 		return err

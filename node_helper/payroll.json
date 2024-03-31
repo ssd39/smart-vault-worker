@@ -1,0 +1,10 @@
+{
+    "name": "Payroll",
+    "description": "A payroll tool with autopay and corss currency payout.",
+    "icon": "QmehAbPCPuGkrrMJpxy5kkUViY6oGDVhaHAAsmg2cbUUbA",
+    "github": "https://github.com/ssd39",
+    "daoId": "",
+    "uiframe": "",
+    "setupframe": "",
+    "corewasm": ""
+}

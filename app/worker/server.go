@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blocto/solana-go-sdk/types"
 	"github.com/gorilla/websocket"
 	"github.com/ssd39/smart-vault-sgx-app/app/chainhelper"
 )
@@ -18,6 +19,17 @@ var upgrader = websocket.Upgrader{}
 var mu sync.Mutex
 
 var subReqList = []chainhelper.SubRequest{}
+var subMap = map[uint64]bool{}
+var account types.Account
+var concesuesAcc types.Account
+
+func SetAccount(acc types.Account) {
+	account = acc
+}
+
+func SetConsesuesAccount(acc types.Account) {
+	concesuesAcc = acc
+}
 
 func SidecarChannel(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
@@ -80,11 +92,28 @@ func ConfirmBid(bidRes *BidRes) {
 	mu.Lock()
 	defer mu.Unlock()
 	var tempList []chainhelper.SubRequest
-	now := time.Now()
+	now, err := chainhelper.GetCurTime()
+	if err != nil {
+		return
+	}
 	for _, item := range subReqList {
-		if item.BidEndTime > now.Unix() {
+		if item.BidEndTime > now {
 			if bidRes.Id == item.Id {
 				// call smart contrct to bid
+				_, err := chainhelper.AddBid(account, concesuesAcc, item, bidRes.Rent)
+				if err == nil {
+					curTime, err := chainhelper.GetCurTime()
+					if err == nil {
+						go func(item_ chainhelper.SubRequest) {
+							logger.Info("Claim can be proceed after", "seconds", item_.BidEndTime-curTime)
+							timer := time.NewTimer(time.Duration(item_.BidEndTime-curTime) * time.Second)
+							<-timer.C
+							timer.Stop()
+							// check if i am the bid winner if it is claim the bid
+							chainhelper.ClaimBid(account, concesuesAcc, item_)
+						}(item)
+					}
+				}
 			} else {
 				tempList = append(tempList, item)
 			}
@@ -96,6 +125,11 @@ func ConfirmBid(bidRes *BidRes) {
 func SendBidReq(subReqPayload chainhelper.SubRequest) error {
 	mu.Lock()
 	defer mu.Unlock()
+	_, isExsist := subMap[subReqPayload.Id]
+	if isExsist {
+		return nil
+	}
+	subMap[subReqPayload.Id] = true
 	if !isSideCardConnected {
 		return errors.New("Sidecar not connected!")
 	}

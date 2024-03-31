@@ -18,9 +18,9 @@ const USER_STATE = "USER_STATE";
 const SUB_STATE = "SUB_STATE";
 
 const mySplToken = new PublicKey(
-  "5DYw4t2nJoSyhD9NDnPTveN7ZY4DwZyDXHTMJPdnqeZG"
+  "F9uNojiqaWU8FPtiBhbmZtewsWFCCGk38eRDRqUTxg7L"
 );
-const programId = new PublicKey("6bcSZLTvfu2ZaC7yhXfkaupFG315r4qWK8wqSQN5LRFT");
+const programId = new PublicKey("J82e6dQCfCgNdfQmyAdAX9jFeE7cREE84gfT3ViNauDN");
 
 const keyPairBytes = JSON.parse(fs.readFileSync("keypair.json"));
 
